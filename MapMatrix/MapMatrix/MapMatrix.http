@@ -1,0 +1,6 @@
+@MapMatrix_HostAddress = http://localhost:5187
+
+GET {{MapMatrix_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
