@@ -7,7 +7,7 @@ namespace MapMatrix.Entities
     public class Content
     {
         [Key]
-        public Guid identifiantContent { get; set; } = Guid.NewGuid();
+        public Guid id { get; set; } = Guid.NewGuid();
 
         [Required, MaxLength(50)]
         public string type { get; set; } = null!; // "news", "event", "ad", "organization"
@@ -31,9 +31,9 @@ namespace MapMatrix.Entities
         public DateTime? publishedAt { get; set; }
 
         // Lien avec un objet
-        public Guid? identifiantTrail { get; set; }
+        public Guid? trailId { get; set; }
 
-        [ForeignKey(nameof(identifiantTrail))]
+        [ForeignKey(nameof(trailId))]
         public Trail? trail { get; set; }
 
         // Statut d'approbation du contenu

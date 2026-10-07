@@ -7,27 +7,30 @@ namespace MapMatrix.Entities
     public class Emergency
     {
         [Key]
-        public Guid identifiantEmergency { get; set; } = Guid.NewGuid();
+        public Guid id { get; set; } = Guid.NewGuid();
 
         [Required]
-        public Guid SessionId { get; set; }
+        public Guid sessionId { get; set; }
 
-        [ForeignKey(nameof(SessionId))]
-        public GuideSession Session { get; set; } = null!;
+        [ForeignKey(nameof(sessionId))]
+        public GuideSession session { get; set; } = null!;
 
         [Required]
-        public Guid GuideId { get; set; }
+        public Guid guideId { get; set; }
+
+        [ForeignKey(nameof(guideId))]
+        public User guide { get; set; } = null!;
+
         public Point position { get; set; } = null!;
 
         public string? message { get; set; }
 
         [Required]
-        public string status { get; set; } = "open"; // "open", "acknowledged", "resolved", "false_alarm"
+        public EmergencyStatus status { get; set; } = EmergencyStatus.open; // "open", "acknowledged", "resolved", "false_alarm"
 
-        public Guid? acknowledgedBy { get; set; }
-        public DateTime? acknowledgedAt { get; set; }
-        public DateTime? resolvedAt { get; set; }
+        public Guid? handledBy { get; set; } //superviseur qui a pris en charge
 
+        public DateTime acknowledgedAt { get; set; } = DateTime.UtcNow;
         public DateTime createdAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Scalar.AspNetCore;
 
 
 
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 
 //DbContext + PostGIS
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -26,6 +28,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
        o.MapEnum<TransportMode>("transport_mode");
        o.MapEnum<SessionStatus>("session_status");
        o.MapEnum<AssignmentStatus>("assignment_status");
+       o.MapEnum<EmergencyStatus>("emergency_status");
    }));
 
 //Jwt Authentication
@@ -50,19 +53,27 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TrailService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<AssignmentService>();
+builder.Services.AddScoped<EmergencyService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<BeaconService>();
+builder.Services.AddScoped<ContentService>();
+builder.Services.AddScoped<FileUploadService>();
 
 var app = builder.Build();
 
 //Configure the HTTP request pipeline.
-//if(app.Environment.IsDevelopment())
-//{
-//    app.UseSwagger();
-//    app.UseSwaggerUI();
-//}
+if(app.Environment.IsDevelopment())
+{
+    //app.UseSwagger();
+    //app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 app.MapControllers();
 
 app.Run();

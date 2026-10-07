@@ -30,6 +30,7 @@ namespace MapMatrix.Data
             modelBuilder.HasPostgresEnum<TransportMode>();
             modelBuilder.HasPostgresEnum<SessionStatus>();
             modelBuilder.HasPostgresEnum<AssignmentStatus>();
+            modelBuilder.HasPostgresEnum<EmergencyStatus>();
 
 
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -100,6 +101,8 @@ namespace MapMatrix.Data
             {
                 entity.ToTable("beacons");
                 entity.Property(b => b.position).HasColumnType("geometry(Point, 4326)");
+                entity.Property(b => b.sequenceOrder).HasColumnName("sequence_order");
+                entity.Property(b => b.createdBy).HasColumnName("created_by");
             });
 
             modelBuilder.Entity<TrailSchedule>(entity =>
@@ -109,7 +112,7 @@ namespace MapMatrix.Data
 
             modelBuilder.Entity<TrailAssignment>(entity =>
             {
-                entity.ToTable("trail_assignment");
+                entity.ToTable("trail_assignments");
                 entity.Property(a => a.status).HasColumnName("status").HasColumnType("assignment_status");
             });
 
@@ -129,14 +132,23 @@ namespace MapMatrix.Data
             modelBuilder.Entity<Emergency>(entity =>
             {
                 entity.ToTable("emergencies");
-                entity.Property(e => e.status).HasConversion<string>();
+                entity.Property(e => e.status).HasColumnName("status").HasColumnType("emergency_status");
                 entity.Property(e => e.position).HasColumnType("geometry(Point, 4326)");
+                entity.Property(e => e.handledBy).HasColumnName("handled_by");
+                entity.Property(e => e.acknowledgedAt).HasColumnName("acknowledged_at");
             });
 
             modelBuilder.Entity<Content>(entity =>
             {
                 entity.ToTable("contents");
+                entity.Property(c => c.imageUrl).HasColumnName("cover_image_url");
+                entity.Property(c => c.isPublished).HasColumnName("is_published");
+                entity.Property(c => c.publishedAt).HasColumnName("published_at");
+                entity.Property(c => c.startDate).HasColumnName("start_date");
+                entity.Property(c => c.endDate).HasColumnName("end_date");
+                entity.Property(c => c.trailId).HasColumnName("trail_id");
                 entity.Property(c => c.approvalStatus).HasConversion<string>();
+                entity.Property(c => c.authorId).HasColumnName("author_id");
                 entity.Property(c => c.location).HasColumnType("geometry(Point, 4326)");
             });
         }

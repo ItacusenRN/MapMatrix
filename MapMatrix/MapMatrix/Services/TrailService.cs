@@ -41,6 +41,7 @@ namespace MapMatrix.Services
             {
                 name = request.name,
                 description = request.description,
+                coverImageUrl = request.coverImageUrl,
                 transportMode = Enum.TryParse<TransportMode>(request.transportMode, true, out var tm)
                         ? tm
                         : TransportMode.pied,
@@ -135,6 +136,7 @@ namespace MapMatrix.Services
                 id = trail.id,
                 name = trail.name,
                 description = trail.description,
+                coverImageUrl = trail.coverImageUrl,
                 transportMode = trail.transportMode.ToString(),
                 difficulty = trail.difficulty,
                 distanceKm = trail.distanceKm,

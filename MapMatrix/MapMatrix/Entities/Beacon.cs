@@ -7,7 +7,7 @@ namespace MapMatrix.Entities
     public class Beacon
     {
         [Key]
-        public Guid indentifiant { get; set; } = Guid.NewGuid();
+        public Guid id { get; set; } = Guid.NewGuid();
 
         [Required]
         public Guid trailId { get; set; }
@@ -15,20 +15,20 @@ namespace MapMatrix.Entities
         [ForeignKey(nameof(trailId))]
         public Trail trail { get; set; } = null!;
 
-        [Required, MaxLength(150)]
-        public string nom { get; set; } = null!;
+        [Required, MaxLength(200)]
+        public string name { get; set; } = null!;
 
         public string? description { get; set; }
         
         public Point position { get; set; } = null!;
 
-        public int ordreIndex { get; set; } = 0; // Ordre du beacon dans le trail
+        public int sequenceOrder { get; set; } = 0;
 
-        public bool estReference { get; set; } = false; // Indique si le beacon est une référence pour le trail
+        public bool estReference { get; set; } = false;
 
         [Required]
-        public Guid createurId { get; set; }
+        public Guid? createdBy { get; set; }
 
-        public DateTime publierA { get; set; } = DateTime.UtcNow;
+        public DateTime createdAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -7,6 +7,7 @@ namespace MapMatrix.DT0s
         public Guid id { get; set; }
         public string name { get; set; } = null;
         public string? description { get; set; }
+        public string? coverImageUrl { get; set; }
         public string transportMode { get; set; } = null;
         public short? difficulty { get; set; }
         public decimal? distanceKm { get; set; }

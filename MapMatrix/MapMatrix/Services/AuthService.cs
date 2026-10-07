@@ -15,11 +15,13 @@ namespace MapMatrix.Services
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly EmailService _emailService;
 
-        public AuthService(AppDbContext context, IConfiguration configuration)
+        public AuthService(AppDbContext context, IConfiguration configuration, EmailService emailService)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
 
@@ -111,6 +113,7 @@ namespace MapMatrix.Services
 
             _context.users.Add(guide);
             await _context.SaveChangesAsync();
+            await _emailService.sendGuideCredentialsAsync(guide.email, guide.firstName, plainPassword);
 
             return new CreateGuideReponse
             {

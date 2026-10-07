@@ -4,6 +4,7 @@
     {
         public string name { get; set; } = null!;
         public string? description { get; set; }
+        public string? coverImageUrl { get; set; }
         public string transportMode { get; set; } = "pied"; // pied, velo, moto, autre
         public short? difficulty { get; set; }
         public decimal? distanceKm { get; set; }

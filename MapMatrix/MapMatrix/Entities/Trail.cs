@@ -14,6 +14,9 @@ namespace MapMatrix.Entities
 
         public string? description { get; set; }
 
+        [MaxLength(500)]
+        public string? coverImageUrl { get; set; }
+
         [Required]
         public TransportMode transportMode { get; set; } = TransportMode.pied;
 

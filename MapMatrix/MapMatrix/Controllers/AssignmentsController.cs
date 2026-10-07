@@ -12,9 +12,9 @@ namespace MapMatrix.Controllers
     {
         private readonly AssignmentService _assignmentService;
 
-        public AssignmentsController(AssignmentsController assignmentService)
+        public AssignmentsController(AssignmentService assignmentService)
         {
-            assignmentService = assignmentService;
+            _assignmentService = assignmentService;
         }
 
         // POST : api/assignments (assignement par le superviseur)
