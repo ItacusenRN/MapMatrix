@@ -99,5 +99,14 @@ namespace MapMatrix.Controllers
             var result = await _assignmentService.getMyAssignmentsAsync(guideId);
             return Ok(result);
         }
+
+        // GET Api/Assignments/guides (superviseur)
+        [Authorize(Roles ="admin")]
+        [HttpGet("guides")]
+        public async Task<IActionResult> getGuides()
+        {
+            var result = await _assignmentService.getGuideAsync();
+            return Ok(result);
+        }
     }
 }

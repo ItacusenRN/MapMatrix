@@ -67,15 +67,14 @@ namespace MapMatrix.Services
             return MapToResponse(trail);
         }
 
-        public async Task<List<TrailResponse>> getAllAsync(string? userRole = null)
+        public async Task<List<TrailResponse>> getAllAsync(string? userRole = null, Guid? userId = null)
         {
             var query = _context.trails.AsQueryable();
 
             // Un guide ne voit que les trajets approuvés + les siens
-            if(userRole == "guide")
+            if(userRole == "guide" && userId.HasValue)
             {
-                // A laisser pour l'instant pour affiner plus tard
-                // query = query.Where(t => t.approvalStatus == "approved" || t.createdBy == userRole);
+                query = query.Where(t => t.approvalStatus == "approved" || t.createdBy == userId.Value);
             }
 
             var trails = await query.OrderByDescending(t => t.createdAt)

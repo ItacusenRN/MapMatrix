@@ -45,6 +45,11 @@ namespace MapMatrix.Controllers
         public async Task<IActionResult> getAll()
         {
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            Guid? userId = null;
+            if (Guid.TryParse(userIdClaim, out var id))
+                userId = id;
+
             var result = await _trailService.getAllAsync(role);
             return Ok(result);
         }

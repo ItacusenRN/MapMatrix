@@ -182,6 +182,65 @@ namespace MapMatrix.Services
                 throw new ArgumentException("Le guide spécifié n'existe pas ou n'est pas un guide.");
         }
 
+        public async Task<List<GuideListItemResponse>> getGuideAsync()
+        {
+            var guides = await _context.users
+                .Where(u => u.role == UserRole.guide && u.isActive)
+                .OrderBy(u => u.lastName)
+                .ThenBy(u => u.firstName)
+                .ToListAsync();
+
+            var result = new List<GuideListItemResponse>();
+
+            foreach(var g in guides)
+            {
+                // Session en cours ou planifiee
+                var activeSession = await _context.guideSessions
+                    .Where(s => s.guideId == g.id
+                    && (s.status == SessionStatus.planned
+                    || s.status == SessionStatus.in_progress
+                    || s.status == SessionStatus.emergency))
+                    .OrderByDescending(s => s.createdAt)
+                    .FirstOrDefaultAsync();
+
+                // Assignation approuvee (occupe meme sans session demarree)
+                var activeAssignment = await _context.trailAssignments
+                    .Where(a => a.guideId == g.id && a.status == AssignmentStatus.approved)
+                    .OrderByDescending(a => a.createdAt)
+                    .FirstOrDefaultAsync();
+
+                string? trailName = null;
+                if(activeSession != null)
+                {
+                    var trail = await _context.trails.FindAsync(activeSession.trailId);
+                    trailName = trail?.name;
+                }
+                else if(activeSession != null)
+                {
+                    var trail = await _context.trails.FindAsync(activeSession.trailId);
+                    trailName = trail?.name;
+                }
+
+                var isAvailable = activeSession == null && activeAssignment == null;
+
+                result.Add(new GuideListItemResponse
+                {
+                    id = g.id,
+                    email = g.email,
+                    firstName = g.firstName,
+                    lastName = g.lastName,
+                    phone = g.phone,
+                    isActive = g.isActive,
+                    isAvailable = isAvailable,
+                    currentAssignmentId = activeAssignment?.id,
+                    currentSessionId = activeSession?.id,
+                    currentTrailName = trailName
+                });
+            }
+
+            return result;
+        }
+
         private async Task<AssignmentResponse> mapToResponse(TrailAssignment a)
         {
             var trail = await _context.trails.FindAsync(a.trailId);
