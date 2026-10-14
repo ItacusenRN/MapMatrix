@@ -75,6 +75,7 @@ namespace MapMatrix.Data
                 entity.HasIndex(u => u.email).IsUnique();
                 // role est maintenant un enum C# mappé sur l'enum PostgreSQL 'user_role'
                 entity.Property(u => u.role).HasColumnName("role").HasColumnType("user_role");
+                entity.Property(u => u.allowedTransportModes).HasColumnName("allowed_transport_modes");
             });
 
             modelBuilder.Entity<Trail>(entity =>

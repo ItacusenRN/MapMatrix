@@ -21,6 +21,16 @@ namespace MapMatrix.Services
             if (trail == null)
                 throw new ArgumentException("Le trajet n'existe pas.");
 
+            if (request.estReference)
+            {
+                var others = await _context.beacons
+                    .Where(b => b.trailId == request.trailId && b.estReference)
+                    .ToListAsync();
+
+                foreach(var b in others)
+                    b.estReference = false;
+            }
+
             var factory = new GeometryFactory(new PrecisionModel(), 4326);
             var point = factory.CreatePoint(new Coordinate(request.longitude, request.latitude));
 

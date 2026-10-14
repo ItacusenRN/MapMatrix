@@ -20,7 +20,27 @@ namespace MapMatrix.Services
             CreateAssignmentRequest request, Guid supervisorId)
         {
             await validateTrailAndGuide(request.trailId, request.guideId);
-            await checkConflictAsync(request.guideId, request.scheduledDate);
+
+            var trail = await _context.trails.FindAsync(request.trailId);
+            if (trail == null)
+                throw new ArgumentException("trajet introuvable.");
+
+            // 2. Controle mode de transport <- ICI
+            var guide = await _context.users.FindAsync(request.guideId);
+            if (guide == null)
+                throw new ArgumentException("Guide introuvable.");
+
+            var modes = (guide.allowedTransportModes ?? "pied,velo,moto")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var trailMode = trail.transportMode.ToString();
+            if (!modes.Any(m => string.Equals(m, trailMode, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException(
+                    $"Ce guide n'est pas habilite pour le mode <<  {trailMode} >>.");
+            }
+
+            await checkConflictAsync(request.guideId, request.scheduledDate, null, request.trailId);
 
             var assignment = new TrailAssignment
             {
@@ -44,7 +64,27 @@ namespace MapMatrix.Services
             ApplyAssignmentRequest request, Guid guideId)
         {
             await validateTrailAndGuide(request.trailId, guideId);
-            await checkConflictAsync(guideId, request.scheduledDate);
+
+            var trail = await _context.trails.FindAsync(request.trailId);
+            if(trail == null)
+                throw new ArgumentException("trajet introuvable.");
+
+            // Controle mode <- ICI
+            var guide = await _context.users.FindAsync(guideId);
+            if(guide == null)
+                throw new ArgumentException("Guide introuvable.");
+
+            var modes = (guide.allowedTransportModes ?? "pied,velo,moto")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var trailMode = trail.transportMode.ToString();
+            if (!modes.Any(m => string.Equals(m, trailMode, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException(
+                    $"Ce guide n'est pas habilite pour le mode <<  {trailMode} >>.");
+            }
+
+            await checkConflictAsync(guideId, request.scheduledDate, null, request.trailId);
 
             var assignment = new TrailAssignment
             {
@@ -76,7 +116,7 @@ namespace MapMatrix.Services
             // Si on approuve, on revérifie les conflits
             if (status == AssignmentStatus.approved)
             {
-                await checkConflictAsync(assignment.guideId, assignment.scheduledDate, assignment.id);
+                await checkConflictAsync(assignment.guideId, assignment.scheduledDate, assignment.id, assignment.trailId);
             }
 
             assignment.status = status;
@@ -115,44 +155,64 @@ namespace MapMatrix.Services
         // * Un guide ne peut pas avoir deux assignations approved
         // * Qui se chevauchent dans le temps ===
         private async Task checkConflictAsync(
-            Guid guideId, DateTime? scheduledDate, Guid? excludeAssignmentId = null)
+    Guid guideId,
+    DateTime? scheduledDate,
+    Guid? excludeAssignmentId = null,
+    Guid? trailId = null)
         {
-            // Si aucune date n'est fournie, on considère qu'il ne doit
-            // pas y avoir d'autre assignation approved "ouverte"
+            // Session déjà active
+            var hasActiveSession = await _context.guideSessions.AnyAsync(s =>
+                s.guideId == guideId &&
+                (s.status == SessionStatus.planned
+                 || s.status == SessionStatus.in_progress
+                 || s.status == SessionStatus.emergency));
+
+            if (hasActiveSession)
+                throw new InvalidOperationException("Ce guide a déjà une session planifiée ou en cours.");
+
             var query = _context.trailAssignments
-                .Where(a => a.guideId == guideId
-                         && a.status == AssignmentStatus.approved);
+                .Where(a => a.guideId == guideId && a.status == AssignmentStatus.approved);
 
             if (excludeAssignmentId.HasValue)
                 query = query.Where(a => a.id != excludeAssignmentId.Value);
 
             var existing = await query.ToListAsync();
+            if (!existing.Any())
+                return;
 
-            if (!existing.Any()) return;
-
-            // Si la nouvelle assignation n'a pas de date → conflit dès qu'il existe déjà une approved
-            if (!scheduledDate.HasValue)
-            {
+            if (scheduledDate == null)
                 throw new InvalidOperationException(
-                    "Ce guide a déjà une assignation active. Précisez une date éloignée ou attendez qu'il soit libre.");
+                    "Ce guide a déjà une assignation active. Indiquez une date de départ ou annulez l'assignation existante.");
+
+            TimeSpan newDuration = TimeSpan.FromHours(4);
+            if (trailId.HasValue)
+            {
+                var trail = await _context.trails.FindAsync(trailId.Value);
+                if (trail?.estimatedDuration != null)
+                    newDuration = trail.estimatedDuration.Value;
             }
 
-            // Sinon on vérifie un chevauchement simple (± 1 jour par défaut)
-            // Tu pourras affiner plus tard avec la durée réelle du trajet
+            var newStart = scheduledDate.Value;
+            var newEnd = newStart.Add(newDuration);
+
             foreach (var a in existing)
             {
                 if (!a.scheduledDate.HasValue)
-                {
                     throw new InvalidOperationException(
-                        "Ce guide a déjà une assignation active sans date précise.");
-                }
+                        "Ce guide a une assignation approuvée sans date. Annulez-la ou renseignez la date.");
 
-                var diff = (scheduledDate.Value - a.scheduledDate.Value).Duration();
-                if (diff.TotalHours < 24) // moins de 24h d'écart → conflit
-                {
+                TimeSpan otherDuration = TimeSpan.FromHours(4);
+                var otherTrail = await _context.trails.FindAsync(a.trailId);
+                if (otherTrail?.estimatedDuration != null)
+                    otherDuration = otherTrail.estimatedDuration.Value;
+
+                var otherStart = a.scheduledDate.Value;
+                var otherEnd = otherStart.Add(otherDuration);
+
+                bool overlap = newStart < otherEnd && otherStart < newEnd;
+                if (overlap)
                     throw new InvalidOperationException(
-                        $"Conflit : le guide est déjà assigné le {a.scheduledDate:dd/MM/yyyy HH:mm}.");
-                }
+                        $"Conflit horaire avec l'assignation du {otherStart:u} (trajet « {otherTrail?.name} »).");
             }
         }
 
@@ -205,7 +265,11 @@ namespace MapMatrix.Services
 
                 // Assignation approuvee (occupe meme sans session demarree)
                 var activeAssignment = await _context.trailAssignments
-                    .Where(a => a.guideId == g.id && a.status == AssignmentStatus.approved)
+                    .Where(a => a.guideId == g.id && 
+                    a.status == AssignmentStatus.approved
+                    && (a.scheduledDate == null
+                    || a.scheduledDate.Value.Date == DateTime.UtcNow.Date
+                    ||Math.Abs((a.scheduledDate.Value - DateTime.UtcNow).TotalDays) < 1))
                     .OrderByDescending(a => a.createdAt)
                     .FirstOrDefaultAsync();
 
@@ -215,9 +279,9 @@ namespace MapMatrix.Services
                     var trail = await _context.trails.FindAsync(activeSession.trailId);
                     trailName = trail?.name;
                 }
-                else if(activeSession != null)
+                else if(activeAssignment != null)
                 {
-                    var trail = await _context.trails.FindAsync(activeSession.trailId);
+                    var trail = await _context.trails.FindAsync(activeAssignment.trailId);
                     trailName = trail?.name;
                 }
 

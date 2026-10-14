@@ -175,5 +175,22 @@ namespace MapMatrix.Services
 
             return res.ToString();
         }
+
+        public async Task<bool> changePasswordAsync(Guid userId, ChangePasswordRequest request)
+        {
+            var user = await _context.users.FindAsync(userId);
+            if (user == null) return false;
+
+            if (!BCrypt.Net.BCrypt.Verify(request.currentPassword, user.passwordHash))
+                throw new ArgumentException("Mot de passe atuel incorrect.");
+
+            if (string.IsNullOrWhiteSpace(request.newPassword) || request.newPassword.Length < 6)
+                throw new ArgumentException("Le nouveau mot de passe doit faire au moins 6 caracteres.");
+
+            user.passwordHash = BCrypt.Net.BCrypt.HashPassword(request.newPassword);
+            user.updatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

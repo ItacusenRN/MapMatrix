@@ -85,5 +85,26 @@ namespace MapMatrix.Controllers
             // On retourne le mot de passe généré pour que l'admin puisse le communiquer au guide
             return Ok(result);
         }
+
+        // Changement de password
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> changePassword([FromBody] ChangePasswordRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            try
+            {
+                var ok = await _authService.changePasswordAsync(userId, request);
+                if (!ok) return NotFound();
+                return Ok(new { message = "Mot de passe mis a jour" });
+            }
+            catch(ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        } 
     }
 }

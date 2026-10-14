@@ -50,5 +50,8 @@ namespace MapMatrix.Entities
 
         [Column("updated_at")]
         public DateTime updatedAt { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(100)]
+        public string? allowedTransportModes { get; set; } = "pied,velo,moto";
     }
 }
