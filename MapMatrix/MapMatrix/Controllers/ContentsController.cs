@@ -58,5 +58,49 @@ namespace MapMatrix.Controllers
             return Ok(result);
         }
 
+        // Update
+        [Authorize(Roles = "admin,guide")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> update(Guid id, [FromBody] updateContentRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            try
+            {
+                var result = await _contentService.updateAsync(id, request, userId, role);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
+        // Delete
+        [Authorize(Roles = "admin,guide")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> delete(Guid id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            try
+            {
+                var ok = await _contentService.deleteAsync(id, userId, role);
+                if (!ok) return NotFound();
+                return Ok(new { message = "Contenu supprimé" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
     }
 }

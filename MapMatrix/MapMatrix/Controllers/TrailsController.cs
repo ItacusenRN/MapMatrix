@@ -84,5 +84,53 @@ namespace MapMatrix.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        // Update
+        [Authorize(Roles = "admin,guide")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> update(Guid id, [FromBody] updateTrailRequest request)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            try
+            {
+                var result = await _trailService.updateAsync(id, request, userId, role);
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // Delete
+        [Authorize(Roles = "admin,guide")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> delete(Guid id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim, out Guid userId))
+                return Unauthorized();
+
+            try
+            {
+                var ok = await _trailService.deleteAsync(id, userId, role);
+                if (!ok) return NotFound();
+                return Ok(new { message = "Trajet supprimé" });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
     }
 }

@@ -68,7 +68,7 @@ namespace MapMatrix.Services
                 return null; // Invalid credentials
 
             // Verify password
-            if(!BCrypt.Net.BCrypt.Verify(request.password, user.passwordHash))
+            if (!BCrypt.Net.BCrypt.Verify(request.password, user.passwordHash))
                 return null; // Invalid credentials
 
             // Mise à jour du Last Login
@@ -93,8 +93,8 @@ namespace MapMatrix.Services
         public async Task<CreateGuideReponse?> createGuideAsync(CreateGuideRequest request, Guid IdAdmin)
         {
             //verification que l'email n'existe pas déjà
-            if(await _context.users.AnyAsync(u => u.email == request.email))
-                return null; 
+            if (await _context.users.AnyAsync(u => u.email == request.email))
+                return null;
 
             //Generation automatique du mot de passe
             string plainPassword = generateRandomPassword(10);
@@ -189,6 +189,18 @@ namespace MapMatrix.Services
 
             user.passwordHash = BCrypt.Net.BCrypt.HashPassword(request.newPassword);
             user.updatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> setActiveStatusAsync(Guid guideId, bool isActive)
+        {
+            var guide = await _context.users.FindAsync(guideId);
+            if (guide == null || guide.role != UserRole.guide)
+                return false;
+
+            guide.isActive = isActive;
+            guide.updatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }

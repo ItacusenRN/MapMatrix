@@ -105,6 +105,15 @@ namespace MapMatrix.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-        } 
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpPut("guide/{id}/active")]
+        public async Task<IActionResult> setGuideActive(Guid id, [FromBody] setActiveRequest request)
+        {
+            var ok = await _authService.setActiveStatusAsync(id, request.isActive);
+            if(!ok) return NotFound(new {message = "Guide introuvable"});
+            return Ok(new { id, isActive = request.isActive });
+        }
     }
 }

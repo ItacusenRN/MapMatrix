@@ -148,5 +148,57 @@ namespace MapMatrix.Services
                 geometry = geometry
             };
         }
+
+        public async Task<TrailResponse?> updateAsync(Guid id, updateTrailRequest request, Guid userId, string role)
+        {
+            var trail = await _context.trails.FindAsync(id);
+            if (trail == null) return null;
+
+            if (role != "admin" && trail.createdBy != userId)
+                throw new UnauthorizedAccessException("Non autorisé.");
+
+            if (request.name != null) trail.name = request.name;
+            if (request.description != null) trail.description = request.description;
+            if (request.coverImageUrl != null) trail.coverImageUrl = request.coverImageUrl;
+            if (request.difficulty.HasValue) trail.difficulty = request.difficulty;
+            if (request.distanceKm.HasValue) trail.distanceKm = request.distanceKm;
+
+            if (!string.IsNullOrEmpty(request.transportMode)
+                && Enum.TryParse<TransportMode>(request.transportMode, true, out var tm))
+                trail.transportMode = tm;
+
+            if (!string.IsNullOrEmpty(request.estimatedDuration)
+                && TimeSpan.TryParse(request.estimatedDuration, out var d))
+                trail.estimatedDuration = d;
+
+            if (request.coordinates != null)
+            {
+                if (request.coordinates.Count < 2)
+                    throw new ArgumentException("Le tracé doit contenir au moins 2 points.");
+
+                var coords = request.coordinates
+                    .Select(p => new Coordinate(p[0], p[1]))
+                    .ToArray();
+                var factory = new GeometryFactory(new PrecisionModel(), 4326);
+                trail.geometry = factory.CreateLineString(coords);
+            }
+
+            trail.updatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return MapToResponse(trail);
+        }
+
+        public async Task<bool> deleteAsync(Guid id, Guid userId, string role)
+        {
+            var trail = await _context.trails.FindAsync(id);
+            if (trail == null) return false;
+
+            if (role != "admin" && trail.createdBy != userId)
+                throw new UnauthorizedAccessException("Non autorisé.");
+
+            _context.trails.Remove(trail);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

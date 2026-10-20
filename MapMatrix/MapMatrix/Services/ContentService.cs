@@ -118,5 +118,55 @@ namespace MapMatrix.Services
                 createdAt = c.createdAt
             };
         }
+
+        public async Task<ContentResponse?> updateAsync(Guid id, updateContentRequest request, Guid userId, string role)
+        {
+            var content = await _context.contents.FindAsync(id);
+            if (content == null) return null;
+
+            if (role != "admin" && content.authorId != userId)
+                throw new UnauthorizedAccessException("Non autorisé.");
+
+            if (request.type != null) content.type = request.type;
+            if (request.title != null) content.title = request.title;
+            if (request.slug != null) content.slug = request.slug;
+            if (request.summary != null) content.summary = request.summary;
+            if (request.body != null) content.body = request.body;
+            if (request.imageUrl != null) content.imageUrl = request.imageUrl;
+            if (request.startDate.HasValue) content.startDate = request.startDate;
+            if (request.endDate.HasValue) content.endDate = request.endDate;
+            if (request.trailId.HasValue) content.trailId = request.trailId;
+
+            if (request.longitude.HasValue && request.latitude.HasValue)
+            {
+                var factory = new GeometryFactory(new PrecisionModel(), 4326);
+                content.location = factory.CreatePoint(
+                    new Coordinate(request.longitude.Value, request.latitude.Value));
+            }
+
+            // Si un guide modifie → repasse en pending
+            if (role == "guide")
+            {
+                content.approvalStatus = "pending";
+                content.isPublished = false;
+            }
+
+            content.updatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return mapToResponse(content);
+        }
+
+        public async Task<bool> deleteAsync(Guid id, Guid userId, string role)
+        {
+            var content = await _context.contents.FindAsync(id);
+            if (content == null) return false;
+
+            if (role != "admin" && content.authorId != userId)
+                throw new UnauthorizedAccessException("Non autorisé.");
+
+            _context.contents.Remove(content);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
