@@ -2,6 +2,8 @@
 using MapMatrix.Data;
 using MapMatrix.DT0s;
 using MapMatrix.Entities;
+using MapMatrix.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 
@@ -10,10 +12,12 @@ namespace MapMatrix.Services
     public class SessionService
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<TrackingHub> _hub;
 
-        public SessionService(AppDbContext context)
+        public SessionService(AppDbContext context, IHubContext<TrackingHub> hub)
         {
             _context = context;
+            _hub = hub;
         }
 
         // Creation d'une session de guide
@@ -104,6 +108,18 @@ namespace MapMatrix.Services
 
             _context.guidePositions.Add(position);
             await _context.SaveChangesAsync();
+
+            await _hub.Clients.Group("supervisors").SendAsync("GuidePosition", new
+            {
+                guideId,
+                sessionId = request.sessionId,
+                longitude = request.longitude,
+                latitude = request.latitude,
+                altitude = request.altitude,
+                speed = request.speed,
+                heading = request.heading,
+                recordedAt = DateTime.UtcNow
+            });
 
             var guide = await _context.users.FindAsync(guideId);
 

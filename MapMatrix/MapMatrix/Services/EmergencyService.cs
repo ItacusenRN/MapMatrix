@@ -1,6 +1,8 @@
 ﻿using MapMatrix.Data;
 using MapMatrix.DT0s;
 using MapMatrix.Entities;
+using MapMatrix.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using NetTopologySuite.Geometries;
@@ -10,10 +12,12 @@ namespace MapMatrix.Services
     public class EmergencyService
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<TrackingHub> _hub;
         
-        public EmergencyService (AppDbContext context)
+        public EmergencyService (AppDbContext context, IHubContext<TrackingHub> hub)
         {
             _context = context;
+            _hub = hub;
         }
 
         // === Le guide declenche une urgence ===
@@ -47,6 +51,17 @@ namespace MapMatrix.Services
 
             _context.emergencies.Add(emergency);
             await _context.SaveChangesAsync();
+
+            await _hub.Clients.Group("supervisors").SendAsync("EmergencyTriggered", new
+            {
+                emergencyId = emergency.id,
+                guideId,
+                sessionId = request.sessionId,
+                longitude = request.longitude,
+                latitude = request.latitude,
+                message = request.message,
+                at = DateTime.UtcNow
+            });
 
             return await mapToResponse(emergency);
         }
