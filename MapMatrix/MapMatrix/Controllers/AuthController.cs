@@ -19,7 +19,7 @@ namespace MapMatrix.Controllers
 
         // ======================
         // POST : api/auth/create-first-admin
-        // A utiliser UNE SEULE FOIS pour creer le premier superviseur
+        // A utiliser UNE SEULE FOIS pour creer le premier admin
         // ======================
         [HttpPost("create-first-admin")]
         public async Task<IActionResult> createFirstAdmin([FromBody] CreateGuideRequest request)
@@ -41,7 +41,7 @@ namespace MapMatrix.Controllers
 
         // ======================
         // POST : api/auth/login
-        // Accessible à tout le monde (Admin + Guide)
+        // Accessible à tout le monde (Admin + Guide + Supervisor)
         // ======================
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -54,6 +54,24 @@ namespace MapMatrix.Controllers
             if (result == null)
                 return Unauthorized(new { message = "Email ou mot de passe incorrect." });
 
+            return Ok(result);
+        }
+
+        // ======================
+        // POST : api/auth/create-supervisor
+        // Reserve uniquement a l'admin
+        // ======================
+        [Authorize(Roles = "admin")]
+        [HttpPost("create-supervisor")]
+        public async Task<IActionResult> createSupervisor([FromBody] CreateGuideRequest request)
+        {
+            var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (adminIdClaim == null || !Guid.TryParse(adminIdClaim, out Guid adminId))
+                return Unauthorized();
+
+            var result = await _authService.createSupervisorAsync(request, adminId);
+            if (result == null)
+                return BadRequest(new { message = "Email déjà utilisé." });
             return Ok(result);
         }
 
@@ -88,7 +106,7 @@ namespace MapMatrix.Controllers
 
         // Changement de password
         [Authorize]
-        [HttpPost("change-password")]
+        [HttpPut("change-password")]
         public async Task<IActionResult> changePassword([FromBody] ChangePasswordRequest request)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -108,11 +126,11 @@ namespace MapMatrix.Controllers
         }
 
         [Authorize(Roles = "admin")]
-        [HttpPut("guide/{id}/active")]
-        public async Task<IActionResult> setGuideActive(Guid id, [FromBody] setActiveRequest request)
+        [HttpPut("users/{id}/active")]
+        public async Task<IActionResult> setUserActiveAsync(Guid id, [FromBody] setActiveRequest request)
         {
             var ok = await _authService.setActiveStatusAsync(id, request.isActive);
-            if(!ok) return NotFound(new {message = "Guide introuvable"});
+            if(!ok) return NotFound(new {message = "Utilisateur introuvable"});
             return Ok(new { id, isActive = request.isActive });
         }
     }

@@ -65,7 +65,7 @@ namespace MapMatrix.Controllers
         }
 
         // PUT : api/trails/{id}/approval
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "supervisor")]
         [HttpPut("{id}/approval")]
         public async Task<IActionResult> updateApproval(Guid id, [FromBody] UpdateApprovalRequest request)
         {
@@ -86,7 +86,7 @@ namespace MapMatrix.Controllers
         }
 
         // Update
-        [Authorize(Roles = "admin,guide")]
+        [Authorize(Roles = "supervisor,guide")]
         [HttpPut("{id}")]
         public async Task<IActionResult> update(Guid id, [FromBody] updateTrailRequest request)
         {
@@ -112,7 +112,7 @@ namespace MapMatrix.Controllers
         }
 
         // Delete
-        [Authorize(Roles = "admin,guide")]
+        [Authorize(Roles = "supervisor,guide")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> delete(Guid id)
         {

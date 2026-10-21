@@ -18,7 +18,7 @@ namespace MapMatrix.Controllers
         }
 
         // POST : api/assignments (assignement par le superviseur)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor")]
         [HttpPost]
         public async Task<IActionResult> assign([FromBody] CreateAssignmentRequest request)
         {
@@ -58,7 +58,7 @@ namespace MapMatrix.Controllers
         }
 
         // PUT : api/assignments/{id}/status (changement du statut par le superviseur)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor")]
         [HttpPut("{id}/status")]
         public async Task<IActionResult> updateStatus(Guid id, [FromBody] UpdateAssignmentStatusRequest request)
         {
@@ -79,7 +79,7 @@ namespace MapMatrix.Controllers
         }
 
         // GET : api/assignments (le superviseur voit tout)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor,admin")]
         [HttpGet]
         public async Task<IActionResult> getAll()
         {
@@ -101,7 +101,7 @@ namespace MapMatrix.Controllers
         }
 
         // GET Api/Assignments/guides (superviseur)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor,admin")]
         [HttpGet("guides")]
         public async Task<IActionResult> getGuides()
         {

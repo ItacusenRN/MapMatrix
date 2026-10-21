@@ -17,8 +17,8 @@ namespace MapMatrix.Controllers
             _beaconService = beaconService;
         }
 
-        // POST : api/beacons - guide ou admin
-        [Authorize(Roles = "guide,admin")]
+        // POST : api/beacons - guide ou supervisor
+        [Authorize(Roles = "guide,supervisor")]
         [HttpPost]
         public async Task<IActionResult> create([FromBody] CreateBeaconRequest request)
         {
@@ -47,7 +47,7 @@ namespace MapMatrix.Controllers
         }
 
         // DELETE : api/beacons/{id}
-        [Authorize(Roles = "guide,admin")]
+        [Authorize(Roles = "guide,supervisor")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> delete(Guid id)
         {

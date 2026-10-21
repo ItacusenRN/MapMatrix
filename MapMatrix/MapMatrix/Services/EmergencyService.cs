@@ -52,16 +52,38 @@ namespace MapMatrix.Services
             _context.emergencies.Add(emergency);
             await _context.SaveChangesAsync();
 
-            await _hub.Clients.Group("supervisors").SendAsync("EmergencyTriggered", new
-            {
-                emergencyId = emergency.id,
-                guideId,
-                sessionId = request.sessionId,
-                longitude = request.longitude,
-                latitude = request.latitude,
-                message = request.message,
-                at = DateTime.UtcNow
-            });
+            await _hub.Clients.Group($"session_{request.sessionId}")
+                .SendAsync("EmergencyTriggered", new
+                {
+                    emergencyId = emergency.id,
+                    sessionId = request.sessionId,
+                    guideId,
+                    longitude = request.longitude,
+                    latitude = request.latitude,
+                    message = emergency.message,
+                    at = DateTime.UtcNow
+                });
+
+            // Optionnel : alerte tous les superviseurs connectés au hub
+            await _hub.Clients.Group("supervisors")
+                .SendAsync("EmergencyAlert", new
+                {
+                    emergencyId = emergency.id,
+                    sessionId = request.sessionId,
+                    guideId,
+                    at = DateTime.UtcNow
+                });
+
+            await _hub.Clients.Group($"session_{request.sessionId}")
+                .SendAsync("GuidePosition", new
+                {
+                    guideId,
+                    sessionId = request.sessionId,
+                    longitude = request.longitude,
+                    latitude = request.latitude,
+                    message = request.message,
+                    recordedAt = DateTime.UtcNow
+                });
 
             return await mapToResponse(emergency);
         }

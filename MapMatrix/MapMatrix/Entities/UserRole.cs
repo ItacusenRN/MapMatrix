@@ -4,6 +4,7 @@ namespace MapMatrix.Entities
     public enum UserRole
     {
         admin,
+        supervisor,
         guide
     }
 }

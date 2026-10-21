@@ -39,7 +39,7 @@ namespace MapMatrix.Controllers
         }
 
         // PUT : api/emegencies/{id}/status (superviseur)
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "supervisor")]
         [HttpPut("{id}/status")]
         public async Task<IActionResult> updateStatus(Guid id, [FromBody] UpdateEmergencyStatusRequest request)
         {
@@ -60,7 +60,7 @@ namespace MapMatrix.Controllers
         }
 
         //GET : api/emergencies (toutes)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor")]
         [HttpGet]
         public async Task<IActionResult> getAll()
         {
@@ -69,7 +69,7 @@ namespace MapMatrix.Controllers
         }
 
         // GET : api/emergencies/open (ouvertes uniquement)
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor")]
         [HttpGet("open")]
         public async Task<IActionResult> getOpen()
         {

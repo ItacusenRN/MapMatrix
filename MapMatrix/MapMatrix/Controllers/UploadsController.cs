@@ -15,7 +15,7 @@ namespace MapMatrix.Controllers
         }
 
         // POST : api/uploads/image (multipart/form-data, champ "file")
-        [Authorize(Roles = "guide,admin")]
+        [Authorize(Roles = "guide,supervisor")]
         [HttpPost("image")]
         [RequestSizeLimit(6 * 1024 * 1024)]
         public async Task<IActionResult> uploadImage(IFormFile file)

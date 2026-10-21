@@ -60,6 +60,42 @@ namespace MapMatrix.Services
             };
         }
 
+        // Creation de superviseur par un admin
+        public async Task<CreateGuideReponse?> createSupervisorAsync(CreateGuideRequest request, Guid adminId)
+        {
+            if (await _context.users.AnyAsync(u => u.email == request.email))
+                return null;
+
+            string plainPassword = generateRandomPassword(10);
+
+            var supervisor = new User
+            {
+                email = request.email,
+                firstName = request.firstName,
+                lastName = request.lastName,
+                phone = request.phone,
+                passwordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword),
+                role = UserRole.supervisor,
+                isActive = true,
+                createdBy = adminId
+            };
+
+            _context.users.Add(supervisor);
+            await _context.SaveChangesAsync();
+
+            await _emailService.sendGuideCredentialsAsync(supervisor.email, supervisor.firstName, plainPassword);
+            // (ou un sendCredentialsAsync générique)
+
+            return new CreateGuideReponse
+            {
+                identifiantGuide = supervisor.id,
+                email = supervisor.email,
+                nom = supervisor.firstName,
+                prenom = supervisor.lastName,
+                generatePassword = plainPassword
+            };
+        }
+
         // === LOGIN ===
         public async Task<LoginResponse?> loginAsync(LoginRequest request)
         {
@@ -193,14 +229,14 @@ namespace MapMatrix.Services
             return true;
         }
 
-        public async Task<bool> setActiveStatusAsync(Guid guideId, bool isActive)
+        public async Task<bool> setActiveStatusAsync(Guid userId, bool isActive)
         {
-            var guide = await _context.users.FindAsync(guideId);
-            if (guide == null || guide.role != UserRole.guide)
+            var user = await _context.users.FindAsync(userId);
+            if (user == null || user.role == UserRole.admin)
                 return false;
 
-            guide.isActive = isActive;
-            guide.updatedAt = DateTime.UtcNow;
+            user.isActive = isActive;
+            user.updatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }

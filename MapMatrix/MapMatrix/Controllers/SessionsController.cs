@@ -106,11 +106,20 @@ namespace MapMatrix.Controllers
         }
 
         // GET : api/sessions/live-positions (pour le superviseur)
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "supervisor,admin")]
         [HttpGet("live-positions")]
         public async Task<IActionResult> getLivePosition()
         {
             var result = await _sessionService.getLivePositionAsync();
+            return Ok(result);
+        }
+
+        // GET : api/sessions/active (pour le superviseur)
+        [Authorize(Roles = "supervisor,admin")]
+        [HttpGet("active")]
+        public async Task<IActionResult> getActive()
+        {
+            var result = await _sessionService.getActiveSessionsAsync();
             return Ok(result);
         }
     }

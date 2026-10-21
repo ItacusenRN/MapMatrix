@@ -6,6 +6,7 @@ using MapMatrix.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
+using System.Collections.Concurrent;
 
 namespace MapMatrix.Services
 {
@@ -13,6 +14,33 @@ namespace MapMatrix.Services
     {
         private readonly AppDbContext _context;
         private readonly IHubContext<TrackingHub> _hub;
+        private static readonly ConcurrentDictionary<Guid, (DateTime at, double lon, double lat)> _lastPush = new();
+
+        private bool shouldPushPosition(Guid sessionId, double lon, double lat)
+        {
+            var now = DateTime.UtcNow;
+            if (_lastPush.TryGetValue(sessionId, out var prev))
+            {
+                var seconds = (now - prev.at).TotalSeconds;
+                var meters = haversineMeters(prev.lat, prev.lon, lat, lon);
+                if (seconds < 3 && meters < 10)
+                    return false; // trop fréquent et presque immobile → skip SignalR
+            }
+            _lastPush[sessionId] = (now, lon, lat);
+            return true;
+        }
+
+        private static double haversineMeters(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000;
+            double dLat = (lat2 - lat1) * Math.PI / 180.0;
+            double dLon = (lon2 - lon1) * Math.PI / 180.0;
+            double a =
+                Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
+                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        }
 
         public SessionService(AppDbContext context, IHubContext<TrackingHub> hub)
         {
@@ -109,17 +137,22 @@ namespace MapMatrix.Services
             _context.guidePositions.Add(position);
             await _context.SaveChangesAsync();
 
-            await _hub.Clients.Group("supervisors").SendAsync("GuidePosition", new
+            // Throttle : push SignalR seulement si assez de temps ou de distance
+            if (shouldPushPosition(request.sessionId, request.longitude, request.latitude))
             {
-                guideId,
-                sessionId = request.sessionId,
-                longitude = request.longitude,
-                latitude = request.latitude,
-                altitude = request.altitude,
-                speed = request.speed,
-                heading = request.heading,
-                recordedAt = DateTime.UtcNow
-            });
+                await _hub.Clients.Group($"session_{request.sessionId}")
+                    .SendAsync("GuidePosition", new
+                    {
+                        guideId,
+                        sessionId = request.sessionId,
+                        longitude = request.longitude,
+                        latitude = request.latitude,
+                        altitude = request.altitude,
+                        speed = request.speed,
+                        heading = request.heading,
+                        recordedAt = DateTime.UtcNow
+                    });
+            }
 
             var guide = await _context.users.FindAsync(guideId);
 
@@ -191,6 +224,22 @@ namespace MapMatrix.Services
             {
                 result.Add(await mapToSessionResponse(s));
             }
+            return result;
+        }
+
+        // Liste des sessions actives pour un superviseur
+        public async Task<List<SessionResponse>> getActiveSessionsAsync()
+        {
+            var list = await _context.guideSessions
+                .Where(s => s.status == SessionStatus.in_progress
+                         || s.status == SessionStatus.emergency
+                         || s.status == SessionStatus.planned)
+                .OrderByDescending(s => s.startedAt ?? s.createdAt)
+                .ToListAsync();
+
+            var result = new List<SessionResponse>();
+            foreach (var s in list)
+                result.Add(await mapToSessionResponse(s));
             return result;
         }
 

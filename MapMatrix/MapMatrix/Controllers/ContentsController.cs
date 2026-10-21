@@ -26,7 +26,7 @@ namespace MapMatrix.Controllers
         }
 
         // Admin - tout voir
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor,admin")]
         [HttpGet]
         public async Task<IActionResult> getAll()
         {
@@ -35,7 +35,7 @@ namespace MapMatrix.Controllers
         }
 
         // Admin ou guide - creer (guide -> pending)
-        [Authorize(Roles ="admin,guide")]
+        [Authorize(Roles ="supervisor,guide")]
         [HttpPost]
         public async Task<IActionResult> create([FromBody] CreateContentRequest request)
         {
@@ -49,7 +49,7 @@ namespace MapMatrix.Controllers
         }
 
         // Admin - approuver / rejeter / publier
-        [Authorize(Roles ="admin")]
+        [Authorize(Roles ="supervisor")]
         [HttpPut("{id}/approval")]
         public async Task<IActionResult> updateApproval(Guid id, [FromBody] UpdateContentApprovalRequest request)
         {
@@ -59,7 +59,7 @@ namespace MapMatrix.Controllers
         }
 
         // Update
-        [Authorize(Roles = "admin,guide")]
+        [Authorize(Roles = "supervisor,guide")]
         [HttpPut("{id}")]
         public async Task<IActionResult> update(Guid id, [FromBody] updateContentRequest request)
         {
@@ -81,7 +81,7 @@ namespace MapMatrix.Controllers
         }
 
         // Delete
-        [Authorize(Roles = "admin,guide")]
+        [Authorize(Roles = "supervisor,guide")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> delete(Guid id)
         {

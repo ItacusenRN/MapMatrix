@@ -7,6 +7,22 @@ namespace MapMatrix.Hubs
     [Authorize]
     public class TrackingHub : Hub
     {
+
+        [Authorize(Roles = "supervisor")]
+        public async Task WatchSession(string sessionId)
+        {
+            if (!Guid.TryParse(sessionId, out _))
+                throw new HubException("sessionId invalide.");
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"session_{sessionId}");
+        }
+
+        [Authorize(Roles = "supervisor")]
+        public async Task UnwatchSession(string sessionId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"session_{sessionId}");
+        }
+
         public override async Task OnConnectedAsync()
         {
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -16,7 +32,7 @@ namespace MapMatrix.Hubs
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
 
-                if (role == "admin")
+                if (role == "supervisor")
                     await Groups.AddToGroupAsync(Context.ConnectionId, "supervisors");
 
                 if (role == "guide")
